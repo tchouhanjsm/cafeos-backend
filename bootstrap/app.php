@@ -12,12 +12,21 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-    $middleware->web(remove: [
-        \Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class,
-    ]);
 
-    $middleware->api();
-})
+        // Remove CSRF for API (stateless JWT)
+        $middleware->web(remove: [
+            \Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class,
+        ]);
+
+        // Register custom middleware aliases
+        $middleware->alias([
+            'role' => \App\Http\Middleware\RoleMiddleware::class,
+        ]);
+
+        // Keep API middleware stack
+        $middleware->api();
+    })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
-    })->create();
+    })
+    ->create();

@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use App\Models\User;
 
 class AuthController extends Controller
 {
@@ -16,62 +16,43 @@ class AuthController extends Controller
         if (empty($pin)) {
             return response()->json([
                 'success' => false,
-                'data'    => null,
-                'message' => 'PIN is required',
-                'code'    => 422
+                'message' => 'PIN is required'
             ], 422);
         }
 
+        // Find active staff
         if (!empty($email)) {
-            $staff = DB::table('staff')
-                ->where('email', $email)
+            $user = User::where('email', $email)
                 ->where('is_active', 1)
                 ->first();
-
-            if (!$staff || !password_verify($pin, $staff->pin_code)) {
-                return response()->json([
-                    'success' => false,
-                    'data'    => null,
-                    'message' => 'Invalid credentials. Please try again.',
-                    'code'    => 401
-                ], 401);
-            }
         } else {
-            $allStaff = DB::table('staff')
-                ->where('is_active', 1)
-                ->get();
-
-            $staff = null;
-
-            foreach ($allStaff as $s) {
-                if (password_verify($pin, $s->pin_code)) {
-                    $staff = $s;
-                    break;
-                }
-            }
-
-            if (!$staff) {
-                return response()->json([
-                    'success' => false,
-                    'data'    => null,
-                    'message' => 'Invalid PIN. Please try again.',
-                    'code'    => 401
-                ], 401);
-            }
+            $user = User::where('is_active', 1)
+                ->get()
+                ->first(function ($u) use ($pin) {
+                    return password_verify($pin, $u->pin_code);
+                });
         }
+
+        if (!$user || !password_verify($pin, $user->pin_code)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid credentials'
+            ], 401);
+        }
+
+        // Generate JWT token properly
+        $token = auth('api')->login($user);
 
         return response()->json([
             'success' => true,
-            'data'    => [
-                'staff' => [
-                    'id'    => (int) $staff->id,
-                    'name'  => $staff->name,
-                    'email' => $staff->email,
-                    'role'  => $staff->role,
-                ]
-            ],
-            'message' => 'Login successful',
-            'code'    => 200
-        ]);
+            'token'   => $token,
+            'expires_in' => auth('api')->factory()->getTTL() * 60,
+            'staff'   => [
+                'id'    => (int) $user->id,
+                'name'  => $user->name,
+                'email' => $user->email,
+                'role'  => $user->role,
+            ]
+        ], 200);
     }
 }
