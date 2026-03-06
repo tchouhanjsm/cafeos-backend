@@ -30,10 +30,9 @@ class OrderController extends Controller
         ]);
     }
 
-
     /*
     |--------------------------------------------------------------------------
-    | Kitchen Load Balancer
+    | Smart Kitchen Load Balancer
     |--------------------------------------------------------------------------
     */
 
@@ -42,7 +41,7 @@ class OrderController extends Controller
         $station = DB::table('kitchen_stations')
             ->leftJoin('order_items', function ($join) {
                 $join->on('kitchen_stations.id', '=', 'order_items.station_id')
-                     ->whereIn('order_items.status', ['pending', 'cooking']);
+                     ->whereIn('order_items.status', ['pending','cooking']);
             })
             ->select(
                 'kitchen_stations.id',
@@ -55,7 +54,6 @@ class OrderController extends Controller
 
         return $station->id ?? null;
     }
-
 
     /*
     |--------------------------------------------------------------------------
@@ -75,7 +73,6 @@ class OrderController extends Controller
             'data' => $orders
         ]);
     }
-
 
     /*
     |--------------------------------------------------------------------------
@@ -146,7 +143,6 @@ class OrderController extends Controller
         ], 201);
     }
 
-
     /*
     |--------------------------------------------------------------------------
     | Billing Queue
@@ -167,7 +163,6 @@ class OrderController extends Controller
         ]);
     }
 
-
     /*
     |--------------------------------------------------------------------------
     | Request Bill
@@ -176,6 +171,7 @@ class OrderController extends Controller
 
     public function requestBill($id)
     {
+
         $order = Order::find($id);
 
         if (!$order) {
@@ -203,7 +199,6 @@ class OrderController extends Controller
         ]);
     }
 
-
     /*
     |--------------------------------------------------------------------------
     | Show Order
@@ -212,6 +207,7 @@ class OrderController extends Controller
 
     public function show($id)
     {
+
         $order = Order::with('items')->find($id);
 
         if (!$order) {
@@ -228,7 +224,6 @@ class OrderController extends Controller
         ]);
     }
 
-
     /*
     |--------------------------------------------------------------------------
     | Timeline
@@ -237,6 +232,7 @@ class OrderController extends Controller
 
     public function timeline($id)
     {
+
         $events = OrderTimeline::where('order_id', $id)
             ->orderBy('created_at', 'asc')
             ->get();
@@ -247,10 +243,9 @@ class OrderController extends Controller
         ]);
     }
 
-
     /*
     |--------------------------------------------------------------------------
-    | Add Item (WITH LOAD BALANCER)
+    | Add Item (WITH SMART LOAD BALANCER)
     |--------------------------------------------------------------------------
     */
 
@@ -294,7 +289,7 @@ class OrderController extends Controller
 
             /*
             |--------------------------------------------------------------------------
-            | Create Item
+            | Create Order Item
             |--------------------------------------------------------------------------
             */
 
@@ -314,7 +309,7 @@ class OrderController extends Controller
             $this->logEvent(
                 $order->id,
                 'item_added',
-                $validated['item_name'] . ' x' . $validated['quantity']
+                $validated['item_name'].' x'.$validated['quantity']
             );
 
             return response()->json([
@@ -333,10 +328,9 @@ class OrderController extends Controller
         }
     }
 
-
     /*
     |--------------------------------------------------------------------------
-    | Send To Kitchen
+    | Send Order To Kitchen
     |--------------------------------------------------------------------------
     */
 
@@ -359,7 +353,7 @@ class OrderController extends Controller
             ], 409);
         }
 
-        $pendingItems = $order->items()->where('status', 'pending')->get();
+        $pendingItems = $order->items()->where('status','pending')->get();
 
         if ($pendingItems->isEmpty()) {
             return response()->json([
@@ -373,15 +367,15 @@ class OrderController extends Controller
         try {
 
             $order->items()
-                ->where('status', 'pending')
-                ->update(['status' => 'cooking']);
+                ->where('status','pending')
+                ->update(['status'=>'cooking']);
 
             $order->status = 'sent';
             $order->save();
 
             DB::commit();
 
-            $this->logEvent($order->id, 'sent_to_kitchen', 'Order sent to kitchen');
+            $this->logEvent($order->id,'sent_to_kitchen','Order sent to kitchen');
 
             return response()->json([
                 'success' => true,

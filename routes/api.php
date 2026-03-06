@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\BillingController;
 use App\Http\Controllers\Api\ShiftController;
 use App\Http\Controllers\Api\KitchenController;
 use App\Http\Controllers\Api\KitchenStationController;
+use App\Http\Controllers\Api\RestaurantBoardController;
 
 
 /*
@@ -153,6 +154,9 @@ Route::get('/kitchen/stations', [KitchenStationController::class,'index'])
 
 Route::post('/kitchen/stations', [KitchenStationController::class,'store'])
     ->middleware('role:admin');
+
+Route::get('/restaurant/board', [RestaurantBoardController::class, 'index'])
+    ->middleware('role:admin,cashier,waiter');
 
 
     /*

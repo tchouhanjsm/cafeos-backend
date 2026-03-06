@@ -94,6 +94,33 @@ class KitchenController extends Controller
         ]);
     }
 
+/*
+|--------------------------------------------------------------------------
+| Kitchen Station Queue
+|--------------------------------------------------------------------------
+*/
+
+public function stationQueue($stationId)
+{
+
+    $orders = Order::with(['items' => function ($q) use ($stationId) {
+
+        $q->where('station_id', $stationId)
+          ->whereIn('status', ['pending','cooking']);
+
+    }])
+    ->where('status','sent')
+    ->orderBy('created_at','asc')
+    ->get();
+
+    return response()->json([
+        'success' => true,
+        'station_id' => $stationId,
+        'count' => $orders->count(),
+        'data' => $orders
+    ]);
+
+}
 
     /*
     |--------------------------------------------------------------------------
