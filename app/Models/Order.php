@@ -3,27 +3,26 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use App\Models\OrderItem;
 
 class Order extends Model
 {
     protected $table = 'orders';
-
-    // Your legacy table does NOT have created_at / updated_at
-    public $timestamps = false;
 
     protected $fillable = [
         'order_number',
         'table_id',
         'staff_id',
         'order_type',
+        'status',
         'guest_count',
         'notes',
-        'status'
-    ];
-
-    protected $casts = [
-        'guest_count' => 'integer',
+        'subtotal',
+        'tax_amount',
+        'discount_amount',
+        'grand_total',
+        'paid_amount',
+        'balance_amount',
+        'billed_at'
     ];
 
     /*
@@ -32,9 +31,19 @@ class Order extends Model
     |--------------------------------------------------------------------------
     */
 
+    public function shift()
+{
+    return $this->belongsTo(Shift::class);
+}
+
     public function items()
     {
-        return $this->hasMany(OrderItem::class, 'order_id');
+        return $this->hasMany(OrderItem::class);
+    }
+
+    public function payments()
+    {
+        return $this->hasMany(Payment::class);
     }
 
     /*
